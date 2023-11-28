@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { debounce } from "lodash";
 import PromptCard from "./PromptCard";
 
 const PromptCardsList = ({ data, handleTagClick }) => {
@@ -17,11 +18,10 @@ const PromptCardsList = ({ data, handleTagClick }) => {
 };
 
 function Feed() {
-  const [searchText, setSearchText] = useState("");
+  const [searchedResults, setSearchedResults] = useState([]);
   const [posts, setPosts] = useState([]);
-  const handleSearchChange = (e) => {
-    setSearchText(e.target.value);
-  };
+  const [searchText, setSearchText] = useState("");
+
   useEffect(() => {
     const fetchPosts = async () => {
       const response = await fetch("/api/prompt");
@@ -30,6 +30,26 @@ function Feed() {
     };
     fetchPosts();
   }, []);
+
+  const handleTagClick = (postTag) => {
+    setSearchText(postTag);
+    debounceOnChange(postTag);
+  };
+  const handleSearchChange = (e) => {
+    setSearchText(e.target.value);
+    debounceOnChange(e.target.value);
+  };
+  const debounceOnChange = debounce((searchValue) => {
+    const matchedPosts = posts.filter((post) => {
+      const regex = new RegExp(searchValue, "gi");
+      return (
+        post.prompt.match(regex) ||
+        post.tag.match(regex) ||
+        post.creator.username.match(regex)
+      );
+    });
+    setSearchedResults(matchedPosts);
+  }, 500);
 
   return (
     <section className="feed">
@@ -43,7 +63,14 @@ function Feed() {
           required
         />
       </form>
-      <PromptCardsList data={posts} handleTagClick={() => {}} />
+      {searchText ? (
+        <PromptCardsList
+          data={searchedResults}
+          handleTagClick={handleTagClick}
+        />
+      ) : (
+        <PromptCardsList data={posts} handleTagClick={handleTagClick} />
+      )}
     </section>
   );
 }
