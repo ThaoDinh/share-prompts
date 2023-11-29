@@ -1,42 +1,29 @@
 "use client";
-import { useState, useEffect } from "react";
+
 import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import Profile from "@components/Profile";
 
 const MyProfile = () => {
-  const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const profileId = searchParams.get("id");
-  const [profile, setProfile] = useState({});
-  const [posts, setPosts] = useState([]);
   const router = useRouter();
+  const { data: session } = useSession();
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const response = await fetch(`/api/users/${profileId}`);
-      const data = await response.json();
-      setProfile(data);
-    };
-    if (profileId) {
-      fetchUserProfile();
-    }
-  }, [profileId]);
+  const [myPosts, setMyPosts] = useState([]);
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const response = await fetch(
-        `/api/users/${profileId || session?.user.id}/posts`
-      );
+      const response = await fetch(`/api/users/${session?.user.id}/posts`);
       const data = await response.json();
-      setPosts(data);
-    };
-    if (session?.user.id) {
-      fetchPosts();
-    }
-  }, [profileId, session?.user.id]);
 
-  const handleEdit = async (post) => {
+      setMyPosts(data);
+    };
+
+    if (session?.user.id) fetchPosts();
+  }, [session?.user.id]);
+
+  const handleEdit = (post) => {
     router.push(`/update-prompt?id=${post._id}`);
   };
 
@@ -50,7 +37,7 @@ const MyProfile = () => {
         if (res.status === 200) {
           alert("Post deleted successfully");
           const filteredPosts = posts.filter((p) => p._id !== post._id);
-          setPosts(filteredPosts);
+          setMyPosts(filteredPosts);
         } else {
           alert(`Something went wrong with status code ${res.status}`);
         }
@@ -63,15 +50,9 @@ const MyProfile = () => {
 
   return (
     <Profile
-      name={
-        !profileId || profileId === session?.user.id ? "My" : profile.username
-      }
-      desc={`Welcome to ${
-        !profileId || profileId === session?.user.id
-          ? "your personalizedyour personalized"
-          : profile.username
-      } profile page`}
-      data={posts}
+      name="My"
+      desc="Welcome to your personalized profile page. Share your exceptional prompts and inspire others with the power of your imagination"
+      data={myPosts}
       handleEdit={handleEdit}
       handleDelete={handleDelete}
     />
